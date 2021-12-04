@@ -1,17 +1,31 @@
-// input = new File("small.in")
-input = new File("basic.in")
+input = new File("small.in")
+// input = new File("basic.in")
+
+a = new Tuple(1,2)
+def (int x, int y) = a
+println a
+println "$x $y"
 
 commands = input.readLines().collect { it ->
   (direction, units) = it.split(" ")
-  [("${direction}" as String): (units as Integer)]
+  units = units as Integer
+  new Tuple(direction == "forward" ? units : 0 , ["down": 1, "up": -1].get(direction, 0) * units)
 }
 
 // Part I
-int getCummulateCommandsPerDirection(def commands, String direction) {
-  commands.sum { it.get(direction, 0) }
-}
-
-horizontal = getCummulateCommandsPerDirection(commands, "forward")
-depth = getCummulateCommandsPerDirection(commands, "down") - getCummulateCommandsPerDirection(commands, "up")
+horizontal = commands.sum { it[0] }
+depth = commands.sum { it[1] }
 println "PartI ${horizontal * depth}"
 
+// PartII
+data = commands.inject(new Tuple(0, 0)) { data, dir ->
+  def (int aim, int depth) = data
+  def (int forward, int lastAim) = dir
+
+  aim += lastAim
+  depth += aim * forward
+
+  new Tuple(aim, depth)
+}
+
+println "PartII: ${horizontal * data[1]}"
