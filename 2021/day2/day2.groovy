@@ -1,11 +1,6 @@
 input = new File("small.in")
 // input = new File("basic.in")
 
-a = new Tuple(1,2)
-def (int x, int y) = a
-println a
-println "$x $y"
-
 commands = input.readLines().collect { it ->
   (direction, units) = it.split(" ")
   units = units as Integer
