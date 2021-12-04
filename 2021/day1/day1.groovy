@@ -1,11 +1,18 @@
 input = new File("small.in")
+//input = new File("basic.in")
 
-depths = input.readlines().collect { it as Integer }
+depths = input.readLines().collect { it as Integer }
 
 // Part I
-answer = [
-  depths.subList(1, depths.size()),
-  depths.subList(0, depths.size() -1 ),
-].transpose().count { it[0] > it[1] }
+int countLargerNumbers(List numbers) {
+  [
+    numbers.subList(1, numbers.size()),
+    numbers.subList(0, numbers.size() -1 ),
+  ].transpose().count { it[0] > it[1] }
+}
 
-println "PartI: $answer"
+println "PartI: ${countLargerNumbers(depths)}"
+
+// Part II
+slidingWindows = (0..depths.size() - 3).collect { depths.subList(it, it + 3).sum() }
+println "PartII: ${countLargerNumbers(slidingWindows)}"
