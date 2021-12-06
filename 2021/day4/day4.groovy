@@ -1,10 +1,11 @@
-input = new File("small.in").readLines().findAll()
-// input = new File("basic.in").readLines().findAll()
+input = new File("small.in")
+// input = new File("basic.in")
 
-// Part I
+input = input.readLines().findAll() // Sanitize input
+
 drawns = input[0].split(",").collect { it as int }
-
 boardSize = 5
+
 boards = input[1..-1].collate(boardSize).collect { board ->
   board.collect { it.trim().split(" ").findAll().collect { number -> number as int } }
 }
@@ -31,22 +32,20 @@ def determineWinningNumber(def board, List drawns) {
     rows.put(row, rows.getOrDefault(row, 0) + 1)
 
     if (columns.containsValue(boardSize) || rows.containsValue(boardSize)) {
-      score = sumUnmarked * drawn
-      return [score, index]
+      return [score: sumUnmarked * drawn, index: index]
     }
     return null
   }.find()
 }
 
-// PartI
-
 winnings = boards.collect { board ->
   determineWinningNumber(board, drawns)
 }
 
-winner = winnings.min { it[1] }
-println "PartI: ${winner[0]}"
+// PartI
+winner = winnings.min { it.index }
+println "PartI: ${winner.score}"
 
 // Part II
-winner = winnings.max { it[1] }
-println "PartII: ${winner[0]}"
+winner = winnings.max { it.index }
+println "PartII: ${winner.score }"
