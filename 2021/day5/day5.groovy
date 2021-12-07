@@ -4,36 +4,35 @@ input = new File("small.in")
 lines = input.readLines().collect { it.findAll(/\d+/).collect { it as int } }
 lines = lines.collect { it -> [x0: it[0], y0: it[1], x1: it[2], y1: it[3]] }
 
-// println lines*.x0
-// min_x = (lines*.x0 + lines*.x1).min()
-// max_x = (lines*.x0 + lines*.x1).max()
-// min_y = (lines*.y0 + lines*.y1).min()
-// max_y = (lines*.y0 + lines*.y1).max()
-//
-// board = new int[max_x - min_x + 1][max_y - min_y + 1]
-
 def getSlope(def line) {
   if (line.x0 == line.x1) return null // vertical line
   return (line.y1 - line.y0) / (line.x1 - line.x0)
 }
 
-def drawLine(def line) {
-  if (line.x0 == line.x1) { // horitonzal
-    (Math.min(line.y0, line.y1)..Math.max(line.y0, line.y1)).collect { [x: line.x0, y: it] }
-  } else if (line.y0 == line.y1) {
-    (Math.min(line.x0, line.x1)..Math.max(line.x0, line.x1)).collect { [x: it, y: line.y0] }
-  } else {
-    // do nothing
+def drawLine(def line, boolean useDiagonal) {
+  slope = getSlope(line)
+  switch (slope) {
+    case { it == null }: // vertical
+      return (Math.min(line.y0, line.y1)..Math.max(line.y0, line.y1)).collect { [x: line.x0, y: it] }
+    case { Math.abs(it) < 1E-8 }:  // horizontal
+      return (Math.min(line.x0, line.x1)..Math.max(line.x0, line.x1)).collect { [x: it, y: line.y0] }
+    case { useDiagonal && Math.abs(it) == 1 }:
+      x0 = slope == 1 ? Math.min(line.x0, line.x1) : Math.max(line.x0, line.x1)
+      return (Math.min(line.y0, line.y1)..Math.max(line.y0, line.y1)).collect {
+        [
+          x: x0 + (slope as int) * (it - Math.min(line.y0, line.y1)),
+          y: it
+        ]
+      }
   }
 }
 
-points = lines.collect { line ->
-  slope = getSlope(line)
-  if (slope == null || Math.abs(slope) <= 1E-8) drawLine(line)
-}.findAll()
+def countIntersections(def lines, boolean useDiagonal) {
+  points = lines.collect { drawLine(it, useDiagonal) }.findAll().collectMany { it }
+  freq = points.countBy { it }
 
-// println points
+  freq.count { k, v -> v > 1 }
+}
 
-freq = points.collectMany { [it*.x, it*.y].transpose() }.countBy { it }
-
-println "PartI: ${freq.count { k, v -> v > 1 }}"
+println "PartI: ${countIntersections(lines, false)}"
+println "PartII: ${countIntersections(lines, true)}"
