@@ -115,25 +115,28 @@ bool operator==(const Point& p1, const Point& p2) {
     return p1.r == p2.r && p1.c == p2.c;
 }
 
-vector<Antinode> get_antinodes(const Antenna& a1, const Antenna& a2) {
-    int d_r = a2.r - a1.r;
-    int d_c = a2.c - a1.c;
+pair<int, int> get_delta(const Point& p1, const Point& p2) {
+    return {p1.r - p2.r, p1.c - p2.c};
+}
 
-    vector<Antinode> v;
-    v.push_back(Antinode(a1.r - d_r, a1.c - d_c));
-    v.push_back(Antinode(a2.r + d_r, a2.c + d_c));
-    return v;
+vector<Antinode> get_antinodes(const Antenna& a1, const Antenna& a2) {
+    auto [d_r, d_c] = get_delta(a2, a1);
+
+    return {
+        Antinode(a1.r - d_r, a1.c - d_c),
+        Antinode(a2.r + d_r, a2.c + d_c),
+    };
 }
 
 void add_points_in_line(Grid& grid, const Point& p1, const Point& p2, unordered_set<Point, HashPoint>& points) {
-    int d_c = p2.c - p1.c;
-    int d_r = p2.r - p1.r;
+    auto [d_r, d_c] = get_delta(p2, p1);
 
-    Point point = Point(p1.r, p1.c);
+    Point point = p1;
     for (int i = 0; grid.is_inside(point); point = Point(p1.r - d_r * i, p1.c - d_c * i), ++i) {
         points.insert(point);
     }
-    point = Point(p1.r, p1.c);
+
+    point = p1;
     for (int i = 0; grid.is_inside(point); point = Point(p1.r + d_r * i, p1.c + d_c * i), ++i) {
         points.insert(point);
     }
