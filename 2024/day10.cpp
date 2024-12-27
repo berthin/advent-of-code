@@ -1,22 +1,28 @@
-#include <array>
-#include <cstdio>
-#include <vector>
-#include <cstring>
-#include <queue>
-#include <unordered_map>
-#include <string>
-#include <cassert>
-#include <sstream>
-#include <iostream>
-#include <queue>
-#include <cstdint>
-#include <set>
-#include <map>
-#include <cmath>
-#include <unordered_set>
-#include <algorithm>
-#include <numeric>
+// Use C++23 to compile the code (clang++ min version 18)
+// clang++ -std=c++23 -stdlib=libc++ day10.cpp -O3
 
+#include <algorithm>
+#include <array>
+#include <array>
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <numeric>
+#include <queue>
+#include <queue>
+#include <ranges>
+#include <ranges>
+#include <set>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <vector>
 #include "Debug.hpp"
 
 using namespace std;
@@ -32,25 +38,23 @@ struct Position {
     int r, c;
 
     vector<Position> move_all_directions() const {
-        auto directions = vector<Position> {
+        const auto directions = vector<Position> {
             {-1, 0},
             {+1, 0},
             {0, -1},
             {0, +1},
         };
 
-        vector<Position> all_directions;
-        for (auto& move: directions) {
-            all_directions.push_back({r + move.r, c + move.c });
-        }
-        return all_directions;
+        return directions 
+            | views::transform([this](auto& direction) { return Position(r + direction.r, c + direction.c); }) 
+            | ranges::to<vector>();
     }
 
     bool operator==(Position other) const {
         return r == other.r && c == other.c;
     }
-
 };
+
 ostream& operator<<(ostream& os, const Position& p) {
     os << "Point(r=" << p.r << ", c=" << p.c << ")";
     return os; 
@@ -64,14 +68,6 @@ struct HashPosition {
     }
 };
 
-struct Bound {
-    int lower;
-    int upper;
-
-    bool check(const int& value) const {
-        return lower <= value && value < upper;
-    }
-};
 
 struct TopographicMap {
     vector<vector<int>> data;
@@ -93,13 +89,10 @@ struct TopographicMap {
     }
 
     vector<Position> trail_heads() const {
-        vector<Position> heads;
-        for (int r = 0; r < rows(); ++r) {
-            for (int c = 0; c < cols(); ++c) {
-                if (data[r][c] == TRAIL_HEAD_VALUE) heads.push_back({r, c});
-            }
-        }
-        return heads;
+        return views::iota(0, rows() * cols())
+            | views::filter([this](int index) { return (data[index % cols()][index / cols()] == TRAIL_HEAD_VALUE); })
+            | views::transform([this](int index) { return Position{index % cols(), index / cols()}; }) 
+            | ranges::to<vector>();
     }
 
     bool is_inside(const Position& position) const {
@@ -109,16 +102,16 @@ struct TopographicMap {
 };
 
 TopographicMap read_map() {
-    string line;
     TopographicMap tmap;
-    while (cin >> line) {
-        vector<int> row;
-        for (char ch: line) {
-            if (ch == '.') row.push_back(UNKNOWN_VALUE);
-            else row.push_back(ch - '0');
-        }
-        tmap.data.push_back(row);
+    
+    for (auto line: views::istream<string>(cin)) {
+        tmap.data.push_back(
+            line 
+            | views::transform([](auto ch) { return ch == '.' ? UNKNOWN_VALUE : (ch - '0'); }) 
+            | ranges::to<vector>()
+        );
     }
+
     return tmap;
 }
 
@@ -133,14 +126,14 @@ int count_trails(const TopographicMap& tmap, const Position& head) {
 
     int count = memo[head];
 
-    for (auto& next: head.move_all_directions()) {
-        if (tmap.is_inside(next) && tmap.at(next) == tmap.at(head) + 1) {
-            count += count_trails(tmap, next);
-        }
-    }
+    count = ranges::fold_left(
+        head.move_all_directions() 
+            | views::filter([&](const auto& next) { return (tmap.is_inside(next) && tmap.at(next) == tmap.at(head) + 1); })
+            | views::transform([&](auto next) { return count_trails(tmap, next); })
+        , 0, std::plus<int>()
+    );
 
-    memo[head] = count;
-    return count;
+    return memo[head] = count;
 }
 
 int count_how_many_reachable_ends(const TopographicMap& tmap, const Position& head) {
@@ -157,16 +150,16 @@ int count_how_many_reachable_ends(const TopographicMap& tmap, const Position& he
         if (visited.count(current)) continue;
         visited.insert(current);
 
-        if (tmap.at(current) == TRAIL_END_VALUE) {
-            count += 1;
-        }
+        if (tmap.at(current) == TRAIL_END_VALUE) count += 1;
 
-        for (auto& next: current.move_all_directions()) {
-            if (tmap.is_inside(next) && tmap.at(next) == tmap.at(current) + 1) {
+        ranges::for_each(
+            current.move_all_directions() 
+                | views::filter([&](const auto& next) { return (tmap.is_inside(next) && tmap.at(next) == tmap.at(current) + 1); }),
+            [&](const auto& next) {
                 q.push(next);
-            }
-        }
+        });
     }
+
     return count;
 }
 
@@ -187,7 +180,7 @@ int main() {
 
     auto heads = tmap.trail_heads();
 
-    auto [score_part1, score_part2] = accumulate(heads.begin(), heads.end(), make_pair(0, 0), [&](auto init_value, auto& head) {
+    auto [score_part1, score_part2] = ranges::fold_left(heads, make_pair(0, 0), [&](auto init_value, auto& head) {
         return make_pair(
             init_value.first + count_how_many_reachable_ends(tmap, head),
             init_value.second + count_trails(tmap, head)
